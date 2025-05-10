@@ -50,3 +50,39 @@ exports.register = async(req,res)=>{
     }
 }
 
+//Login User
+exports.login = async(req,res)=>{
+    try{
+        const {email,password} = req.body
+        if(!email || !password){
+            return res.status(400).json({ msg: "Email & Password are required" })
+        }
+        const user = await User.findOne({email})
+        if(!user){
+            return res.status(404).json({ msg: "User not found" })
+        }
+        //Check password
+        const isPwdValid = await bcrypt.compare(password,user.password)
+        if(!isPwdValid){
+            return res.status(401).json({msg:"Invalid Password"})
+        }
+        const token = jwt.sign({id: user._id},process.env.JWT_SECRET,{expiresIn:'1h'})
+
+        //Send response with token and user data
+        res.status(200).json({
+            msg:"Login successful",
+            token,
+            user:{
+                id:user._id,
+                name:user.name,
+                email:user.email,
+                createdAt:user.createdAt,
+            }
+        })
+    }catch(err){
+        res.status(500).json({
+            message:err.message
+        })
+    }
+}
+
